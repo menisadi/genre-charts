@@ -1,5 +1,7 @@
 import json
+from tqdm import tqdm
 import pylast
+import pandas as pd
 
 
 def get_users_top_artists(network, user_name, period, limit=3) -> list[tuple[str, int]]:
@@ -77,6 +79,27 @@ def initialize():
     )
 
     return network, user_names
+
+
+def rad_tracks_file(network, file_path: str):
+    df = pd.read_csv(file_path, header=None, names=["artist", "Album", "track", "time"])
+    artists_series = df["artist"].value_counts()
+    artists_weights = [(art, count) for art, count in artists_series.to_dict().items()]
+
+    artists_list = df["artist"].unique()
+    prune_tag_list = 3
+    tags_dict = dict.fromkeys(artists_list)
+    for artist in tqdm(artists_list):
+        top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(
+            limit=prune_tag_list
+        )
+        tags_dict[artist] = top_tags
+
+    tags_columns = ["tag" + str(i) for i in range(prune_tag_list)]
+
+    all_tags = get_top_tags(network, artists_weights, limit=0, prune_tag_list=3)
+
+    return all_tags
 
 
 if __name__ == "__main__":

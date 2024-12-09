@@ -1,6 +1,4 @@
 {
-   "reportUnknownVariableType": "none",
-   "reportUnknownParameterType": "none",
    "reportAssignmentType" : "warning",
    "reportOperatorIssue" : "warning",
    "typeCheckingMode" : "standard",
