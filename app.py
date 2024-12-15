@@ -1,6 +1,7 @@
 import json
 from tqdm import tqdm
 import pylast
+import matplotlib.pyplot as plt
 import pandas as pd
 
 
@@ -81,6 +82,41 @@ def initialize():
     return network, user_names
 
 
+def plot_top_tags_trend(
+    network, file_path: str, play_threshold: int = 10, top_k: int = 5
+):
+    df = pd.read_csv(file_path, header=None, names=["artist", "Album", "track", "time"])
+    artists_series = df["artist"].value_counts()
+    top_artists = list(artists_series[artists_series > play_threshold].index)
+    top_data = df.loc[df["artist"].isin(top_artists)].copy()
+    tags_dict = dict.fromkeys(top_artists)
+    for artist in tqdm(top_artists):
+        top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(limit=1)
+        if top_tags:
+            tags_of_artist = [tag.item.name for tag in top_tags]
+            tags_dict[artist] = tags_of_artist[0]
+            if tags_of_artist[0] == "seen live":
+                top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(
+                    limit=2
+                )
+                if len(top_tags) > 1:
+                    tags_of_artist = [tag.item.name for tag in top_tags]
+                    tags_dict[artist] = tags_of_artist[1]
+
+    top_data["tag"] = top_data["artist"].replace(tags_dict)
+    top_genres = top_data["tag"].value_counts().nlargest(top_k).index
+    top_genres_df = top_data.loc[top_data["tag"].isin(top_genres)].copy()
+    top_genres_df["timestamp"] = pd.to_datetime(top_genres_df["time"])
+    top_genres_df["year"] = top_genres_df["timestamp"].dt.year
+    trend_data = top_genres_df.groupby(["year", "tag"]).size().reset_index(name="count")
+    trend_pivot = trend_data.pivot(index="year", columns="tag", values="count").fillna(
+        0
+    )
+    trend_pivot = trend_pivot.div(trend_pivot.sum(axis=1), axis=0) * 100
+    trend_pivot.plot(kind="line", marker="o", title="Genre Trends Over Years")
+    plt.show()
+
+
 def rad_tracks_file(network, file_path: str, prune_tag_list: int = 1):
     df = pd.read_csv(file_path, header=None, names=["artist", "Album", "track", "time"])
     artists_series = df["artist"].value_counts()
@@ -101,9 +137,8 @@ def rad_tracks_file(network, file_path: str, prune_tag_list: int = 1):
     return all_tags
 
 
-if __name__ == "__main__":
+def old_main():
     network, user_names = initialize()
-
     # convert the time period to the same format as pylast
     period_dict = {
         "overall": pylast.PERIOD_OVERALL,
@@ -135,3 +170,12 @@ if __name__ == "__main__":
     all_tags = get_top_tags(network, user_top_artists, limit=0, prune_tag_list=3)
     print("Top tags:")
     print(sorted(all_tags, key=lambda x: x[1], reverse=True)[:10])
+
+
+def main():
+    network, _ = initialize()
+    plot_top_tags_trend(network, "menisadig.csv", play_threshold=100, top_k=5)
+
+
+if __name__ == "__main__":
+    main()
