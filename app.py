@@ -81,21 +81,20 @@ def initialize():
     return network, user_names
 
 
-def rad_tracks_file(network, file_path: str):
+def rad_tracks_file(network, file_path: str, prune_tag_list: int = 1):
     df = pd.read_csv(file_path, header=None, names=["artist", "Album", "track", "time"])
     artists_series = df["artist"].value_counts()
     artists_weights = [(art, count) for art, count in artists_series.to_dict().items()]
-
     artists_list = df["artist"].unique()
-    prune_tag_list = 3
     tags_dict = dict.fromkeys(artists_list)
     for artist in tqdm(artists_list):
         top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(
             limit=prune_tag_list
         )
-        tags_dict[artist] = top_tags
+        tags_of_artist = [tag.item.name for tag in top_tags]
+        tags_dict[artist] = tags_of_artist
 
-    tags_columns = ["tag" + str(i) for i in range(prune_tag_list)]
+    tags_columns = ["tag_" + str(i) for i in range(prune_tag_list)]
 
     all_tags = get_top_tags(network, artists_weights, limit=0, prune_tag_list=3)
 
