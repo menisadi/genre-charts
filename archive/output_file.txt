@@ -1,0 +1,187 @@
+def initialize():
+    with open("tokens.json", "r") as file:
+        tokens: dict[str, str] = json.load(file)
+    with open("user_names.json", "r") as file:
+        user_names: dict[str, str] = json.load(file)
+
+    API_KEY = tokens.get("last_api_key")
+    API_SECRET = tokens.get("last_secret")
+    USERNAME = tokens.get("last_username")
+    PASSWORD_HASH = pylast.md5(tokens.get("last_password"))
+
+    # if any of the tokens are not found, the app will not work
+    try:
+        assert API_KEY is not None
+        assert API_SECRET is not None
+        assert USERNAME is not None
+        assert PASSWORD_HASH is not None
+    except AssertionError:
+        raise Exception(
+            "API_KEY, API_SECRET, USERNAME, and PASSWORD_HASH must be set in tokens.json"
+        )
+
+    network = pylast.LastFMNetwork(
+        api_key=API_KEY,
+        api_secret=API_SECRET,
+        username=USERNAME,
+        password_hash=PASSWORD_HASH,
+    )
+
+    return network, user_names
+import json
+from tqdm import tqdm
+import pylast
+import pandas as pd
+network, user_names = initialize()
+file_path = "./menisadig.csv"
+df = pd.read_csv(file_path, header=None, names=["artist", "Album", "track", "time"])
+df.head()
+artists_series = df["artist"].value_counts()
+artists_series.head()
+artists_weights = [(art, count) for art, count in artists_series.to_dict().items()]
+artists_weights[:5]
+artists_list = df["artist"].unique()
+artists_list[:5]
+tags_dict = dict.fromkeys(artists_list)
+prune_tag_list = 3
+art1 = artists_list[0]
+top_tags = network.get_artist(art1).get_top_tags(
+            limit=prune_tag_list
+        )
+top_tags
+top_tags.item
+len(top_tags)
+t = top_tags[0]
+t.item
+itm = t.item
+itm.get_name()
+t.item.get_name()
+t.weight
+for artist in tqdm(artists_list):
+        top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(
+            limit=1
+        )
+        tags_of_artist = [tag.item.name for tag in top_tags]
+        tags_dict[artist] = tags_of_artist[0]
+for artist in tqdm(artists_list):
+        top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(
+            limit=1
+        )
+        if top_tags:
+            tags_of_artist = [tag.item.name for tag in top_tags]
+            tags_dict[artist] = tags_of_artist[0]
+top_artists = artists_series.index[:1000]
+top_artists[:5]
+top_artists[-1]
+artists_series[artists_series < 1]
+artists_series[artists_series == 1].head()
+artists_series[artists_series == 1].shape
+top_artists = artists_series[artists_series > 2].index
+len(top_artists)
+top_artists = artists_series[artists_series > 3].index
+len(top_artists)
+top_artists = artists_series[artists_series > 10].index
+len(top_artists)
+tags_dict = dict.fromkeys(top_artists)
+for artist in tqdm(top_artists):
+        top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(
+            limit=1
+        )
+        if top_tags:
+            tags_of_artist = [tag.item.name for tag in top_tags]
+            tags_dict[artist] = tags_of_artist[0]
+top_data = df.loc[df["artist"].isin(top_artists)].copy()
+top_data.head()
+len(df)
+len(top_data)
+top_data["tag"] = top_data["artist"].replace(tags_dict)
+top_data.head()
+top_data.resample?
+top_data[["time", "tag"]].resample(on="time").count()
+top_data.resample?
+top_data.resample?
+top_data[["time", "tag"]].resample(on="time", rule="1y").count()
+top_genres = df['tags'].value_counts().nlargest(5).index
+top_genres = df['tag'].value_counts().nlargest(5).index
+top_genres = top_data['tag'].value_counts().nlargest(5).index
+top_genres
+for artist in tqdm(top_artists):
+        top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(
+            limit=1
+        )
+        if top_tags:
+            tags_of_artist = [tag.item.name for tag in top_tags]
+            tags_dict[artist] = tags_of_artist[0]
+        if tags_of_artist[0] == "seen live":
+            top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(limit=1)
+            if len(top_tags) > 1:
+                tags_of_artist = [tag.item.name for tag in top_tags]
+                tags_dict[artist] = tags_of_artist[1]
+top_data = df.loc[df["artist"].isin(top_artists)].copy()
+top_data["tag"] = top_data["artist"].replace(tags_dict)
+top_genres = top_data['tag'].value_counts().nlargest(5).index
+top_genres
+art1 = artists_list[0]
+top_data[top_data["tag"] == "seen live"].head()
+artist = "boygenius"
+top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(limit=1)
+top_tags
+tags_of_artist = [tag.item.name for tag in top_tags]
+tags_of_artist[0]
+tags_of_artist[0] == "seen live"
+for artist in tqdm(top_artists):
+        top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(
+            limit=1
+        )
+        if top_tags:
+            tags_of_artist = [tag.item.name for tag in top_tags]
+            tags_dict[artist] = tags_of_artist[0]
+        if tags_of_artist[0] == "seen live":
+            top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(limit=2)
+            if len(top_tags) > 1:
+                tags_of_artist = [tag.item.name for tag in top_tags]
+                tags_dict[artist] = tags_of_artist[1]
+top_data["tag"] = top_data["artist"].replace(tags_dict)
+top_genres = top_data['tag'].value_counts().nlargest(5).index
+top_genres
+top_genres = top_data['tag'].value_counts().nlargest(7).index
+top_genres
+top_genres = top_data['tag'].value_counts().nlargest(10).index
+top_genres
+top_genres_df = top_data.loc[top_data["tag"].isin(top_genres)]
+top_genres_df.groupby("tag").resample('Y').size().reset_index(name='count')
+top_genres_df.set_index("time").groupby("tag").resample('Y').size().reset_index(name='count')
+top_genres["timestamp"] = pd.to_datetime(top_genres["time"])
+df.head()
+df["time"].dt.date
+df["time"].info()
+top_genres["timestamp"] = pd.to_datetime(top_genres["time"])
+pd.to_datetime(df["time"]).head()
+pd.to_datetime(top_genres_df["time"]).head()
+top_genres_df["timestamp"] = pd.to_datetime(top_genres_df["time"]).head()
+top_genres_df = top_data.loc[top_data["tag"].isin(top_genres)].copy()
+top_genres_df["timestamp"] = pd.to_datetime(top_genres_df["time"]).head()
+top_genres_df.set_index("time").groupby("tag").resample('Y').size().reset_index(name='count')
+top_genres_df.set_index("timestamp").groupby("tag").resample('Y').size().reset_index(name='count')
+top_genres_df["year"] = top_genres_df["timestamp"].dt.year
+top_genres_df.groupby(['year', 'tag']).size().reset_index(name='count')
+top_genres_df.shape
+top_genres_df["year"].value_counts()
+top_genres_df.head()
+top_genres_df.tail()
+df["time"].tail()
+top_genres_df["time"].tail()
+top_genres_df["time"].head()
+pd.to_datetime(top_genres_df["time"]).tail()
+pd.to_datetime(top_genres_df["time"]).head()
+top_genres_df["timestamp"] = pd.to_datetime(top_genres_df["time"])
+top_genres_df["year"] = top_genres_df["timestamp"].dt.year
+top_genres_df.groupby(['year', 'tag']).size().reset_index(name='count')
+trend_pivot = d.pivot(index='year', columns='tag', values='count').fillna(0)
+trend_data = top_genres_df.groupby(['year', 'tag']).size().reset_index(name='count')
+trend_pivot = trend_data.pivot(index='year', columns='tag', values='count').fillna(0)
+trend_pivot
+import matplotlib.pyplot as plt
+trend_pivot.plot(kind='line', marker='o', title='Genre Trends Over Years')
+plt.show()
+%history -f output_file.txt
