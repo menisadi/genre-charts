@@ -3,6 +3,7 @@ from tqdm import tqdm
 import pylast
 import matplotlib.pyplot as plt
 import pandas as pd
+import plotting
 
 
 def initialize():
@@ -68,68 +69,18 @@ def plot_top_tags_trend(
         0
     )
     trend_pivot = trend_pivot.div(trend_pivot.sum(axis=1), axis=0) * 100
-    trend_pivot.plot(kind="line", marker="o", title="Genre Trends Over Years")
-    plt.show()
 
-
-def rad_tracks_file(network, file_path: str, prune_tag_list: int = 1):
-    df = pd.read_csv(file_path, header=None, names=["artist", "Album", "track", "time"])
-    artists_series = df["artist"].value_counts()
-    artists_weights = [(art, count) for art, count in artists_series.to_dict().items()]
-    artists_list = df["artist"].unique()
-    tags_dict = dict.fromkeys(artists_list)
-    for artist in tqdm(artists_list):
-        top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(
-            limit=prune_tag_list
-        )
-        tags_of_artist = [tag.item.name for tag in top_tags]
-        tags_dict[artist] = tags_of_artist
-
-    tags_columns = ["tag_" + str(i) for i in range(prune_tag_list)]
-
-    all_tags = get_top_tags(network, artists_weights, limit=0, prune_tag_list=3)
-
-    return all_tags
-
-
-def old_main():
-    network, user_names = initialize()
-    # convert the time period to the same format as pylast
-    period_dict = {
-        "overall": pylast.PERIOD_OVERALL,
-        "weekly": pylast.PERIOD_7DAYS,
-        "monthly": pylast.PERIOD_1MONTH,
-        "yearly": pylast.PERIOD_12MONTHS,
-        None: pylast.PERIOD_OVERALL,
-    }
-
-    people_names: list[str] = list(user_names.keys())
-
-    # for fix the user name
-    chosen_user = user_names.get(people_names[0])
-    print(f"Showing tags for {chosen_user}")
-    # for start lets pick a time period and user
-    chosen_time_period = "yearly"
-    print(f"Using time period: {chosen_time_period}")
-    print(f"Pylast time period: {period_dict.get(chosen_time_period)}")
-
-    artist_limit = 50
-    user_top_artists = get_users_top_artists(
-        network=network,
-        user_name=chosen_user,
-        period=period_dict.get(chosen_time_period),
-        limit=artist_limit,
-    )
-    print("Top artists:")
-    print(user_top_artists[:5])
-    all_tags = get_top_tags(network, user_top_artists, limit=0, prune_tag_list=3)
-    print("Top tags:")
-    print(sorted(all_tags, key=lambda x: x[1], reverse=True)[:10])
+    return trend_pivot
 
 
 def main():
     network, _ = initialize()
-    plot_top_tags_trend(network, "menisadig.csv", play_threshold=100, top_k=5)
+    trend_pivot = plot_top_tags_trend(
+        network, "menisadig.csv", play_threshold=100, top_k=5
+    )
+    trend_pivot.to_csv("trend_pivot.csv")
+
+    plotting.simple_plot(trend_pivot)
 
 
 if __name__ == "__main__":
