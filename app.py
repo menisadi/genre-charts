@@ -1,3 +1,4 @@
+import argparse
 import json
 from tqdm import tqdm
 import pylast
@@ -38,16 +39,12 @@ def initialize():
     return network, user_names
 
 
-def plot_top_tags_trend(
-    network, file_path: str, play_threshold: int = 10, top_k: int = 5
-):
-    df = pd.read_csv(file_path, header=None, names=["artist", "Album", "track", "time"])
-    artists_series = df["artist"].value_counts()
-    top_artists = list(artists_series[artists_series > play_threshold].index)
-    top_data = df.loc[df["artist"].isin(top_artists)].copy()
-    tags_dict = dict.fromkeys(top_artists)
-    for artist in tqdm(top_artists):
-        top_tags: list[pylast.Tag] = network.get_artist(artist).get_top_tags(limit=1)
+def create_tag_map(
+    network, artists: list[str], backup_dict_to_file: bool = False
+) -> dict:
+    tags_dict = dict.fromkeys(artists)
+    for artist in tqdm(artists):
+        top_tags = network.get_artist(artist).get_top_tags(limit=1)
         if top_tags:
             tags_of_artist = [tag.item.name for tag in top_tags]
             tags_dict[artist] = tags_of_artist[0]
@@ -58,6 +55,21 @@ def plot_top_tags_trend(
                 if len(top_tags) > 1:
                     tags_of_artist = [tag.item.name for tag in top_tags]
                     tags_dict[artist] = tags_of_artist[1]
+
+    if backup_dict_to_file:
+        pd.Series(tags_dict).to_csv("tags_backup.csv")
+    return tags_dict
+
+
+def plot_top_tags_trend(
+    network, file_path: str, play_threshold: int = 10, top_k: int = 5
+):
+    df = pd.read_csv(file_path, header=None, names=["artist", "Album", "track", "time"])
+    artists_series = df["artist"].value_counts()
+    top_artists = list(artists_series[artists_series > play_threshold].index)
+    top_data = df.loc[df["artist"].isin(top_artists)].copy()
+
+    tags_dict = create_tag_map(network=network, artists=top_artists)
 
     top_data["tag"] = top_data["artist"].replace(tags_dict)
     top_genres = top_data["tag"].value_counts().nlargest(top_k).index
@@ -74,13 +86,49 @@ def plot_top_tags_trend(
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Plot top tags trend")
+    parser.add_argument(
+        "-t",
+        "--play-threshold",
+        type=int,
+        default=100,
+        help="Minimum number of plays for an artist to be considered (default: 100)",
+    )
+    parser.add_argument(
+        "-k",
+        "--top-k",
+        type=int,
+        default=5,
+        help="Number of top genres to display (default: 5)",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        metavar="FILE",
+        type=str,
+        help="Specify a file name to save the result.",
+    )
+    parser.add_argument(
+        "-p",
+        "--plot-type",
+        type=str,
+        choices=["simple", "xkcd"],
+        default="simple",
+        help="Choose the plot type: 'simple' (default) or 'xkcd'.",
+    )
+    args = parser.parse_args()
+
     network, _ = initialize()
     trend_pivot = plot_top_tags_trend(
-        network, "menisadig.csv", play_threshold=100, top_k=5
+        network, "menisadig.csv", play_threshold=args.play_threshold, top_k=args.top_k
     )
-    trend_pivot.to_csv("trend_pivot.csv")
+    if args.output:
+        trend_pivot.to_csv(args.output + ".csv")
 
-    plotting.simple_plot(trend_pivot)
+    if args.plot_type == "xkcd":
+        plotting.xkcd_plot(trend_pivot)
+    else:
+        plotting.simple_plot(trend_pivot)
 
 
 if __name__ == "__main__":
