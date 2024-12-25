@@ -63,13 +63,13 @@ def main():
     one_hit_wonders = art_df[
         (art_df["top_song_frac"] == 1) & (art_df["total_count"] > hit_thresh)
     ]
-    print(one_hit_wonders)
+    print(one_hit_wonders[["total_count", "top_song"]])
 
     art_scores = (art_df["total_count"] * art_df["top_song_frac"]).sort_values(
         ascending=False
     )
-    art_scores.name = "artist"
-    top_k_scores = 5
+    art_scores.name = "score"
+    top_k_scores = 15
     hear_more = pd.merge(
         left=art_scores.head(top_k_scores),
         right=art_df,
@@ -77,7 +77,7 @@ def main():
         left_index=True,
         right_index=True,
     )
-    print(hear_more)
+    print(hear_more[["score", "top_song_frac", "top_song"]])
 
 
 def plots(art_df):
