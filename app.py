@@ -5,6 +5,7 @@ import pylast
 import matplotlib.pyplot as plt
 import pandas as pd
 import plotting
+import plotly_plot
 
 
 def initialize():
@@ -112,9 +113,9 @@ def main():
         "-p",
         "--plot-type",
         type=str,
-        choices=["simple", "xkcd"],
+        choices=["simple", "xkcd", "plotly"],
         default="simple",
-        help="Choose the plot type: 'simple' (default) or 'xkcd'.",
+        help="Plot style: 'simple', 'xkcd', or 'plotly' (interactive)",
     )
     args = parser.parse_args()
 
@@ -127,6 +128,11 @@ def main():
 
     if args.plot_type == "xkcd":
         plotting.xkcd_plot(trend_pivot)
+    elif args.plot_type == "plotly":  # NEW
+        plotly_plot.plotly_plot(
+            trend_pivot,
+            output_html=(args.output + ".html") if args.output else None,
+        )
     else:
         plotting.simple_plot(trend_pivot)
 
